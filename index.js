@@ -27,10 +27,24 @@ async function run() {
     const database = client.db("foodflow");
     const foodsCollection = database.collection("foods");
 
-    // Get all Foods items
+    // // Get all Foods items
+    // app.get("/api/v1/foods", async (req, res) => {
+    //   const cursor = foodsCollection.find();
+    //   const result = await cursor.toArray();
+    //   res.send(result);
+    // });
+
+    // paginations
     app.get("/api/v1/foods", async (req, res) => {
-      const cursor = foodsCollection.find();
-      const result = await cursor.toArray();
+      const page = parseInt(req.query.page);
+      const size = parseInt(req.query.size);
+      console.log(page,size);
+      const skip = page * size;
+      const result = await foodsCollection
+        .find()
+        .skip(skip)
+        .limit(size)
+        .toArray();
       res.send(result);
     });
 
@@ -43,7 +57,6 @@ async function run() {
     // Search functionality by Text
     app.get("/api/v1/food", async (req, res) => {
       const searchText = req.query.FoodName;
-      console.log(searchText);
       let query = {};
       if (searchText) {
         query = { FoodName: { $regex: new RegExp(searchText, "i") } };
