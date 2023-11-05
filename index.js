@@ -27,9 +27,28 @@ async function run() {
     const database = client.db("foodflow");
     const foodsCollection = database.collection("foods");
 
+    // Get all Foods items
     app.get("/api/v1/foods", async (req, res) => {
       const cursor = foodsCollection.find();
       const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    // get totalfood length
+    app.get("/api/v1/totalItem", async (req, res) => {
+      const totalItem = await foodsCollection.estimatedDocumentCount();
+      res.send({ totalItem: totalItem });
+    });
+
+    // Search functionality by Text
+    app.get("/api/v1/food", async (req, res) => {
+      const searchText = req.query.FoodName;
+      console.log(searchText);
+      let query = {};
+      if (searchText) {
+        query = { FoodName: { $regex: new RegExp(searchText, "i") } };
+      }
+      const result = await foodsCollection.find(query).toArray();
       res.send(result);
     });
 
