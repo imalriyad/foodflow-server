@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
 const app = express();
@@ -22,12 +22,47 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
-
     const database = client.db("foodflow");
     const foodsCollection = database.collection("foods");
+    const orderCollection = database.collection("orders");
 
+    // get Myorder foods
+    app.get("/api/v1/foods/myOrder", async (req, res) => {
+      const userEmail = req?.query?.customerEmail;
+      console.log(userEmail);
+      let query = {};
+      if (userEmail) {
+        query = { customerEmail: userEmail };
+      }
+      const result = await orderCollection.find(query).toArray();
+      res.send(result);
+    });
 
+    // Delete order
+    app.delete("/api/v1/foods/myOrder/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await orderCollection.deleteOne(query);
+      res.send(result);
+    });
+    // create foods order
+    app.post("/api/v1/foods/order", async (req, res) => {
+      try {
+        const order = req.body;
+        const result = await orderCollection.insertOne(order);
+        res.send(result);
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
+    // get food by id
+    app.get("/api/v1/foods/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await foodsCollection.findOne(query);
+      res.send(result);
+    });
 
     // paginations
     app.get("/api/v1/foods", async (req, res) => {
