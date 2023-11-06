@@ -28,10 +28,18 @@ async function run() {
 
     //  Get Top Ordered Food item
     app.get("/api/v1/foods/topSellingFood", async (req, res) => {
-      const result = await orderCollection
+      const result = await foodsCollection
         .find()
-        .sort({ orderedQuantity: -1 })
+        .sort({ OrderCount: -1 }).limit(6)
         .toArray();
+      res.send(result);
+    });
+
+    //  Get single top Ordered Food item
+    app.get("/api/v1/foods/topSellingFood/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await foodsCollection.findOne(query);
       res.send(result);
     });
 
@@ -90,6 +98,7 @@ async function run() {
       const updateFeld = {
         $set: {
           Quantity: updateQuantity.Quantity,
+          OrderCount: updateQuantity.OrderCount,
         },
       };
       const result = await foodsCollection.updateOne(
