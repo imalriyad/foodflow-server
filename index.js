@@ -38,6 +38,13 @@ async function run() {
       res.send(result);
     });
 
+    // Get order by id
+    app.get("/api/v1/foods/myOrder/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await orderCollection.findOne(query);
+      res.send(result);
+    });
     // Delete order
     app.delete("/api/v1/foods/myOrder/:id", async (req, res) => {
       const id = req.params.id;
@@ -61,6 +68,22 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await foodsCollection.findOne(query);
+      res.send(result);
+    });
+
+    // update qauntity food by id
+    app.put("/api/v1/foods/:id", async (req, res) => {
+      const id = req.params.id;
+      const updateQuantity = req.body
+      console.log(updateQuantity);
+      const query = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateFeld = {
+        $set: {
+          Quantity: updateQuantity.Quantity
+        },
+      };
+      const result = await foodsCollection.updateOne(query,updateFeld,options);
       res.send(result);
     });
 
