@@ -26,10 +26,18 @@ async function run() {
     const foodsCollection = database.collection("foods");
     const orderCollection = database.collection("orders");
 
+    //  Get Top Ordered Food item
+    app.get("/api/v1/foods/topSellingFood", async (req, res) => {
+      const result = await orderCollection
+        .find()
+        .sort({ orderedQuantity: -1 })
+        .toArray();
+      res.send(result);
+    });
+
     // get Myorder foods
     app.get("/api/v1/foods/myOrder", async (req, res) => {
       const userEmail = req?.query?.customerEmail;
-      console.log(userEmail);
       let query = {};
       if (userEmail) {
         query = { customerEmail: userEmail };
@@ -45,6 +53,7 @@ async function run() {
       const result = await orderCollection.findOne(query);
       res.send(result);
     });
+
     // Delete order
     app.delete("/api/v1/foods/myOrder/:id", async (req, res) => {
       const id = req.params.id;
@@ -74,16 +83,20 @@ async function run() {
     // update qauntity food by id
     app.put("/api/v1/foods/:id", async (req, res) => {
       const id = req.params.id;
-      const updateQuantity = req.body
+      const updateQuantity = req.body;
       console.log(updateQuantity);
       const query = { _id: new ObjectId(id) };
       const options = { upsert: true };
       const updateFeld = {
         $set: {
-          Quantity: updateQuantity.Quantity
+          Quantity: updateQuantity.Quantity,
         },
       };
-      const result = await foodsCollection.updateOne(query,updateFeld,options);
+      const result = await foodsCollection.updateOne(
+        query,
+        updateFeld,
+        options
+      );
       res.send(result);
     });
 
