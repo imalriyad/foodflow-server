@@ -26,6 +26,18 @@ async function run() {
     const foodsCollection = database.collection("foods");
     const orderCollection = database.collection("orders");
 
+    // get my added Items
+    app.get("/api/v1/foods/myaddedItem", async (req, res) => {
+      const madeByEmail = req?.query?.MadeByEmail;
+      console.log(madeByEmail);
+      let query = {};
+      if (madeByEmail) {
+        query = { MadeByEmail : madeByEmail };
+      }
+      const result = await foodsCollection.find(query).toArray();
+      res.send(result);
+    });
+
     // Add a item
     app.post("/api/v1/foods/addItem", async (req, res) => {
       const newItem = req.body;
