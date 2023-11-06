@@ -26,11 +26,19 @@ async function run() {
     const foodsCollection = database.collection("foods");
     const orderCollection = database.collection("orders");
 
+    // Add a item
+    app.post("/api/v1/foods/addItem", async (req, res) => {
+      const newItem = req.body;
+      const result = await foodsCollection.insertOne(newItem);
+      res.send(result);
+    });
+
     //  Get Top Ordered Food item
     app.get("/api/v1/foods/topSellingFood", async (req, res) => {
       const result = await foodsCollection
         .find()
-        .sort({ OrderCount: -1 }).limit(6)
+        .sort({ OrderCount: -1 })
+        .limit(6)
         .toArray();
       res.send(result);
     });
