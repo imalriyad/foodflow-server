@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
@@ -7,7 +8,12 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 // MiddleWare
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 
@@ -25,6 +31,41 @@ async function run() {
     const database = client.db("foodflow");
     const foodsCollection = database.collection("foods");
     const orderCollection = database.collection("orders");
+    const usersCollection = database.collection("users");
+
+    // creating and storing cookie with jwt
+    app.post("/api/v1/jwt-token", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.SECRET, {
+        expiresIn: "1h",
+      });
+
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        })
+
+        .send({ success: true });
+    });
+
+    // res.clearCookie(
+    //   "token",
+    //   {
+    //   maxAge: 0,
+    //   secure: process.env.NODE_ENV === "production" ? true : false,
+    //   sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+    //   }
+    //   )
+    //   .send({ status: true })
+
+    // Stored Users when registration
+    app.post("/api/v1/user", async (req, res) => {
+      const user = req.body;
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
 
     //  update food items
     app.patch("/api/v1/foods/updateItem/:id", async (req, res) => {
