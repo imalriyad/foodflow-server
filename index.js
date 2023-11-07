@@ -26,13 +26,32 @@ async function run() {
     const foodsCollection = database.collection("foods");
     const orderCollection = database.collection("orders");
 
+    //  update food items
+    app.patch("/api/v1/foods/updateItem/:id", async (req, res) => {
+      const updatedItem = req.body;
+      console.log(updatedItem);
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updateFeild = {
+        $set: {
+          FoodName: updatedItem.FoodName,
+          FoodImage: updatedItem.FoodImage,
+          Price: updatedItem.Price,
+          Quantity: updatedItem.Quantity,
+          FoodCategory: updatedItem.FoodCategory,
+          FoodOrigin: updatedItem.FoodOrigin,
+        },
+      };
+      const result = await foodsCollection.updateOne(query, updateFeild);
+      res.send(result);
+    });
+
     // get my added Items
     app.get("/api/v1/foods/myaddedItem", async (req, res) => {
       const madeByEmail = req?.query?.MadeByEmail;
-      console.log(madeByEmail);
       let query = {};
       if (madeByEmail) {
-        query = { MadeByEmail : madeByEmail };
+        query = { MadeByEmail: madeByEmail };
       }
       const result = await foodsCollection.find(query).toArray();
       res.send(result);
