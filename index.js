@@ -13,8 +13,8 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://foodflow-6447d.web.app",
-      "https://foodflow-6447d.firebaseapp.com"
-  ],
+      "https://foodflow-6447d.firebaseapp.com",
+    ],
     credentials: true,
   })
 );
@@ -24,6 +24,7 @@ app.use(cookieParser());
 // verify user
 const verifyUser = (req, res, next) => {
   const token = req.cookies?.token;
+
   if (!token) {
     return res.status(401).send({ message: "Unauthorized" });
   }
@@ -52,6 +53,34 @@ async function run() {
     const foodsCollection = database.collection("foods");
     const orderCollection = database.collection("orders");
     const usersCollection = database.collection("users");
+
+    // Filtering for highest-to-lowest-price
+    app.get("/api/v1/food/highest-to-lowest-price", async (req, res) => {
+      const page = parseInt(req.query.page);
+      const size = parseInt(req.query.size);
+      const skip = page * size;
+      const result = await foodsCollection
+        .find()
+        .sort({ Price: -1 })
+        .skip(skip)
+        .limit(size)
+        .toArray();
+      res.send(result);
+    });
+
+    // Filtering for lowest-to-highest-price
+    app.get("/api/v1/food/lowest-to-highest-price", async (req, res) => {
+      const page = parseInt(req.query.page);
+      const size = parseInt(req.query.size);
+      const skip = page * size;
+      const result = await foodsCollection
+        .find()
+        .sort({ Price: 1 })
+        .skip(skip)
+        .limit(size)
+        .toArray();
+      res.send(result);
+    });
 
     // creating and storing cookie with jwt
     app.post("/api/v1/jwt-token", (req, res) => {
@@ -123,7 +152,7 @@ async function run() {
     });
 
     // Add a item
-    app.post("/api/v1/foods/addItem",verifyUser, async (req, res) => {
+    app.post("/api/v1/foods/addItem", verifyUser, async (req, res) => {
       const newItem = req.body;
       const result = await foodsCollection.insertOne(newItem);
       res.send(result);
@@ -172,14 +201,14 @@ async function run() {
     });
 
     // Delete order
-    app.delete("/api/v1/foods/myOrder/:id",verifyUser, async (req, res) => {
+    app.delete("/api/v1/foods/myOrder/:id", verifyUser, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await orderCollection.deleteOne(query);
       res.send(result);
     });
     // create foods order
-    app.post("/api/v1/foods/order",verifyUser, async (req, res) => {
+    app.post("/api/v1/foods/order", verifyUser, async (req, res) => {
       try {
         const order = req.body;
         const result = await orderCollection.insertOne(order);
@@ -190,7 +219,7 @@ async function run() {
     });
 
     // get food by id
-    app.get("/api/v1/foods/:id",async (req, res) => {
+    app.get("/api/v1/foods/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await foodsCollection.findOne(query);
@@ -198,7 +227,7 @@ async function run() {
     });
 
     // update qauntity food by id
-    app.put("/api/v1/foods/:id", verifyUser,async (req, res) => {
+    app.put("/api/v1/foods/:id", verifyUser, async (req, res) => {
       const id = req.params.id;
       const updateQuantity = req.body;
       console.log(updateQuantity);
