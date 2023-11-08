@@ -54,6 +54,37 @@ async function run() {
     const orderCollection = database.collection("orders");
     const usersCollection = database.collection("users");
 
+
+
+   // Filtering for highest-to-lowest-stock
+   app.get("/api/v1/food/highest-to-lowest-stock", async (req, res) => {
+    const page = parseInt(req.query.page);
+    const size = parseInt(req.query.size);
+    const skip = page * size;
+    const result = await foodsCollection
+      .find()
+      .sort({ Quantity : -1 })
+      .skip(skip)
+      .limit(size)
+      .toArray();
+    res.send(result);
+  });
+
+  // Filtering for lowest-to-highest-price
+  app.get("/api/v1/food/lowest-to-highest-stock", async (req, res) => {
+    const page = parseInt(req.query.page);
+    const size = parseInt(req.query.size);
+    const skip = page * size;
+    const result = await foodsCollection
+      .find()
+      .sort({ Quantity: 1 })
+      .skip(skip)
+      .limit(size)
+      .toArray();
+    res.send(result);
+  });
+
+
     // Filtering for highest-to-lowest-price
     app.get("/api/v1/food/highest-to-lowest-price", async (req, res) => {
       const page = parseInt(req.query.page);
