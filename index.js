@@ -10,12 +10,32 @@ const port = process.env.PORT || 5000;
 // MiddleWare
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: [
+      "http://localhost:5173",
+      "https://foodflow-6447d.web.app",
+      "https://foodflow-6447d.firebaseapp.com"
+  ],
     credentials: true,
   })
 );
 app.use(express.json());
 app.use(cookieParser());
+
+// verify user
+const verifyUser = (req, res, next) => {
+  const token = req.cookies?.token;
+  if (!token) {
+    return res.status(401).send({ message: "Unauthorized" });
+  }
+
+  jwt.verify(token, process.env.SECRET, (error, decoded) => {
+    if (error) {
+      return res.status(401).send({ message: "Unauthorized" });
+    }
+    req.user = decoded;
+    next();
+  });
+};
 
 const uri = `mongodb+srv://${process.env.USER_NAME}:${process.env.USER_PASS}@cluster0.aclhyjq.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
@@ -39,7 +59,6 @@ async function run() {
       const token = jwt.sign(user, process.env.SECRET, {
         expiresIn: "1h",
       });
-
       res
         .cookie("token", token, {
           httpOnly: true,
@@ -50,15 +69,16 @@ async function run() {
         .send({ success: true });
     });
 
-    // res.clearCookie(
-    //   "token",
-    //   {
-    //   maxAge: 0,
-    //   secure: process.env.NODE_ENV === "production" ? true : false,
-    //   sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-    //   }
-    //   )
-    //   .send({ status: true })
+    // Removing cookie when user logout
+    app.post("/api/v1/logout", async (req, res) => {
+      res
+        .clearCookie("token", {
+          maxAge: 0,
+          secure: process.env.NODE_ENV === "production" ? true : false,
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        })
+        .send({ status: true });
+    });
 
     // Stored Users when registration
     app.post("/api/v1/user", async (req, res) => {
@@ -70,7 +90,6 @@ async function run() {
     //  update food items
     app.patch("/api/v1/foods/updateItem/:id", async (req, res) => {
       const updatedItem = req.body;
-      console.log(updatedItem);
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const updateFeild = {
@@ -88,8 +107,13 @@ async function run() {
     });
 
     // get my added Items
-    app.get("/api/v1/foods/myaddedItem", async (req, res) => {
-      const madeByEmail = req?.query?.MadeByEmail;
+    app.get("/api/v1/foods/myaddedItem", verifyUser, async (req, res) => {
+      const madeByEmail = req.query?.MadeByEmail;
+      const cookieMail = req.user.email;
+
+      if (madeByEmail !== cookieMail) {
+        return res.status(403).send({ message: "Forbidden" });
+      }
       let query = {};
       if (madeByEmail) {
         query = { MadeByEmail: madeByEmail };
@@ -99,7 +123,7 @@ async function run() {
     });
 
     // Add a item
-    app.post("/api/v1/foods/addItem", async (req, res) => {
+    app.post("/api/v1/foods/addItem",verifyUser, async (req, res) => {
       const newItem = req.body;
       const result = await foodsCollection.insertOne(newItem);
       res.send(result);
@@ -124,8 +148,13 @@ async function run() {
     });
 
     // get Myorder foods
-    app.get("/api/v1/foods/myOrder", async (req, res) => {
+    app.get("/api/v1/foods/myOrder", verifyUser, async (req, res) => {
       const userEmail = req?.query?.customerEmail;
+      const cookieMail = req.user.email;
+
+      if (userEmail !== cookieMail) {
+        return res.status(403).send({ message: "Forbidden" });
+      }
       let query = {};
       if (userEmail) {
         query = { customerEmail: userEmail };
@@ -135,7 +164,7 @@ async function run() {
     });
 
     // Get order by id
-    app.get("/api/v1/foods/myOrder/:id", async (req, res) => {
+    app.get("/api/v1/foods/myOrder/:id", verifyUser, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await orderCollection.findOne(query);
@@ -143,14 +172,14 @@ async function run() {
     });
 
     // Delete order
-    app.delete("/api/v1/foods/myOrder/:id", async (req, res) => {
+    app.delete("/api/v1/foods/myOrder/:id",verifyUser, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await orderCollection.deleteOne(query);
       res.send(result);
     });
     // create foods order
-    app.post("/api/v1/foods/order", async (req, res) => {
+    app.post("/api/v1/foods/order",verifyUser, async (req, res) => {
       try {
         const order = req.body;
         const result = await orderCollection.insertOne(order);
@@ -161,7 +190,7 @@ async function run() {
     });
 
     // get food by id
-    app.get("/api/v1/foods/:id", async (req, res) => {
+    app.get("/api/v1/foods/:id",async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await foodsCollection.findOne(query);
@@ -169,7 +198,7 @@ async function run() {
     });
 
     // update qauntity food by id
-    app.put("/api/v1/foods/:id", async (req, res) => {
+    app.put("/api/v1/foods/:id", verifyUser,async (req, res) => {
       const id = req.params.id;
       const updateQuantity = req.body;
       console.log(updateQuantity);
